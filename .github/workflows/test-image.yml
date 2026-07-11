@@ -17,11 +17,10 @@ jobs:
         run: |
           docker inspect pjmorales04/amd-track2-agent-v2:latest | jq '.[0] | {Architecture: .Architecture, Os: .Os, Cmd: .Config.Cmd, Entrypoint: .Config.Entrypoint, WorkingDir: .Config.WorkingDir}'
 
-      - name: Run container with example tasks
+      - name: Run container with example tasks (no env vars, simulates harness)
         run: |
           mkdir -p /tmp/output
           docker run --rm \
-            -e FIREWORKS_API_KEY=${{ secrets.FIREWORKS_API_KEY }} \
             -v "$(pwd)/examples:/input:ro" \
             -v "/tmp/output:/output" \
             pjmorales04/amd-track2-agent-v2:latest
