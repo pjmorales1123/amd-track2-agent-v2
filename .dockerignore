@@ -5,6 +5,7 @@ __pycache__
 .pytest_cache
 .venv
 venv
+temp_venv
 output
 .env
 test_clips
@@ -14,3 +15,6 @@ output_test
 provision_output
 competitor_layer.tar.gz
 *.log
+generate_*.py
+SUBMISSION.md
+submission_*

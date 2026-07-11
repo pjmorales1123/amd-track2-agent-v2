@@ -5,5 +5,6 @@ __pycache__
 .pytest_cache
 .venv
 venv
+temp_venv
 output
 .env

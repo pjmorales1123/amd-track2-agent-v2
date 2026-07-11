@@ -1,0 +1,30 @@
+name: Test Docker image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pull image
+        run: docker pull pjmorales04/amd-track2-agent-v2:latest
+
+      - name: Inspect image
+        run: |
+          docker inspect pjmorales04/amd-track2-agent-v2:latest | jq '.[0] | {Architecture: .Architecture, Os: .Os, Cmd: .Config.Cmd, Entrypoint: .Config.Entrypoint, WorkingDir: .Config.WorkingDir}'
+
+      - name: Run container with example tasks
+        run: |
+          mkdir -p /tmp/output
+          docker run --rm \
+            -e FIREWORKS_API_KEY=${{ secrets.FIREWORKS_API_KEY }} \
+            -v "$(pwd)/examples:/input:ro" \
+            -v "/tmp/output:/output" \
+            pjmorales04/amd-track2-agent-v2:latest
+
+      - name: Show output
+        run: cat /tmp/output/results.json
