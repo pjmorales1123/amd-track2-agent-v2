@@ -1,6 +1,11 @@
 # syntax=docker/dockerfile:1
 FROM --platform=linux/amd64 python:3.11-slim
 
+# The Track 2 harness does not inject API credentials. Bake the Fireworks key
+# into the image so the container can authenticate without runtime env vars.
+ARG FIREWORKS_API_KEY
+ENV FIREWORKS_API_KEY=${FIREWORKS_API_KEY}
+
 # Install FFmpeg, runtime libraries, and temporary build tools for faster-whisper/CTranslate2.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \

@@ -28,5 +28,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: pjmorales04/amd-track2-agent-v2:latest
+          build-args: |
+            FIREWORKS_API_KEY=${{ secrets.FIREWORKS_API_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
