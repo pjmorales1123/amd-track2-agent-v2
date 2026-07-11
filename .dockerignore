@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.venv
+venv
+output
+.env
+test_clips
+test_input
+frame_check
+output_test
+provision_output
+competitor_layer.tar.gz
+*.log
