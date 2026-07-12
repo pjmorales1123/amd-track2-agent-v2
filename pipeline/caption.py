@@ -70,10 +70,14 @@ STYLE_PROMPTS = {
 
 
 def _clean_caption(text: str) -> str:
-    """Strip surrounding quotes and whitespace from a caption."""
+    """Strip surrounding quotes and normalize common Unicode punctuation."""
     text = text.strip()
     if len(text) >= 2 and text[0] == text[-1] and text[0] in {'"', "'"}:
         text = text[1:-1].strip()
+    # Normalize smart quotes and em-dashes to ASCII-safe forms so JSON output is clean.
+    text = text.replace("“", '"').replace("”", '"')
+    text = text.replace("‘", "'").replace("’", "'")
+    text = text.replace("—", "-").replace("–", "-")
     return text
 
 
