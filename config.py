@@ -35,16 +35,18 @@ class Config:
     # --- Keyframe extraction ---
     SCENE_THRESHOLD = float(os.environ.get("SCENE_THRESHOLD", "0.3"))
     # Dynamic frame budget: how many frames to aim for at different durations.
-    FRAMES_SHORT = int(os.environ.get("FRAMES_SHORT", "3"))      # <= 30 s
-    FRAMES_MEDIUM = int(os.environ.get("FRAMES_MEDIUM", "5"))    # 30-60 s
-    FRAMES_LONG = int(os.environ.get("FRAMES_LONG", "6"))        # 60-120 s
-    ABSOLUTE_MAX_FRAMES = int(os.environ.get("ABSOLUTE_MAX_FRAMES", "6"))
+    # Experimental increases coverage while keeping token cost manageable.
+    FRAMES_SHORT = int(os.environ.get("FRAMES_SHORT", "5"))      # <= 30 s
+    FRAMES_MEDIUM = int(os.environ.get("FRAMES_MEDIUM", "6"))    # 30-60 s
+    FRAMES_LONG = int(os.environ.get("FRAMES_LONG", "8"))        # 60-120 s
+    ABSOLUTE_MAX_FRAMES = int(os.environ.get("ABSOLUTE_MAX_FRAMES", "8"))
     KEYFRAME_JPEG_QUALITY = int(os.environ.get("KEYFRAME_JPEG_QUALITY", "4"))
-    KEYFRAME_MAX_LONG_SIDE = int(os.environ.get("KEYFRAME_MAX_LONG_SIDE", "1024"))
+    KEYFRAME_MAX_LONG_SIDE = int(os.environ.get("KEYFRAME_MAX_LONG_SIDE", "768"))
 
     # --- Caption generation ---
-    CAPTION_MAX_TOKENS = int(os.environ.get("CAPTION_MAX_TOKENS", "200"))
-    BRIEF_MAX_TOKENS = int(os.environ.get("BRIEF_MAX_TOKENS", "1500"))
+    CAPTION_MAX_TOKENS = int(os.environ.get("CAPTION_MAX_TOKENS", "120"))
+    BRIEF_MAX_TOKENS = int(os.environ.get("BRIEF_MAX_TOKENS", "1800"))
+    CAPTION_MODE = os.environ.get("CAPTION_MODE", "formal_grounded").strip().lower()
 
     # --- Orchestration ---
     PER_CLIP_TIMEOUT_SECONDS = int(os.environ.get("PER_CLIP_TIMEOUT_SECONDS", "120"))

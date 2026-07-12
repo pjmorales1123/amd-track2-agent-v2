@@ -131,44 +131,41 @@ def build_keyframe_timestamps(
     max_frames: int,
 ) -> list[float]:
     """
-    Build a list of representative timestamps.
+    Build a list of representative timestamps using stable temporal coverage.
 
-    Always includes the first (0.0) and last (duration) frames, adds scene
-    changes, and either fills or sub-samples to stay inside [min_frames,
-    max_frames].
+    Strategy:
+      1. Start with segment midpoints (avoids fades/title cards at boundaries).
+      2. Add scene changes only when they fall far from an existing midpoint.
+      3. De-duplicate and cap at max_frames.
+
+    This reduces dependence on first/last frames which often contain fades,
+    black frames, or title cards.
     """
-    # Start with boundaries and scene changes.
-    candidates = [0.0] + [ts for ts in scene_changes if 0.0 < ts < duration] + [duration]
-    candidates = sorted(set(round(ts, 3) for ts in candidates))
+    # Always aim for at least 4 frames so coverage is not too sparse.
+    target = max(min_frames, min(max_frames, 6))
 
-    if len(candidates) < min_frames:
-        # Fill with evenly spaced frames inside the clip.
-        needed = min_frames - len(candidates)
-        step = duration / (needed + 1)
-        extra = [round(step * i, 3) for i in range(1, needed + 1)]
-        candidates = sorted(set(candidates + extra))
+    # Base coverage: midpoints of equal temporal segments.
+    step = duration / target
+    candidates = [round(step * (i + 0.5), 3) for i in range(target)]
 
+    # Merge scene changes if they add genuinely different coverage.
+    min_gap = duration / (target * 2)  # half a segment is enough difference
+    for ts in scene_changes:
+        ts = round(ts, 3)
+        if ts <= 0.0 or ts >= duration:
+            continue
+        if all(abs(ts - c) > min_gap for c in candidates):
+            candidates.append(ts)
+
+    candidates = sorted(set(candidates))
+
+    # If we exceeded budget, keep the most evenly-distributed subset.
     if len(candidates) > max_frames:
-        # Sample evenly across candidate timestamps while keeping first/last.
-        first, last = candidates[0], candidates[-1]
-        middle = candidates[1:-1]
-        keep_count = max_frames - 2
-        if keep_count <= 0:
-            return [first, last]
-        if len(middle) <= keep_count:
-            sampled = middle
-        else:
-            indices = [
-                int(round(i * (len(middle) - 1) / (keep_count - 1)))
-                for i in range(keep_count)
-            ]
-            sampled = [middle[i] for i in sorted(set(indices))]
-        candidates = [first] + sampled + [last]
+        step = duration / max_frames
+        candidates = [round(step * (i + 0.5), 3) for i in range(max_frames)]
 
     # Clamp to valid range so the last frame never sits too close to EOF.
-    # Use duration - 0.5 to leave room for containers whose reported duration
-    # is slightly longer than the actual decodeable stream.
-    candidates = [max(0.0, min(ts, duration - 0.5)) for ts in candidates]
+    candidates = [max(0.5, min(ts, duration - 0.5)) for ts in candidates]
     return sorted(set(round(ts, 3) for ts in candidates))
 
 

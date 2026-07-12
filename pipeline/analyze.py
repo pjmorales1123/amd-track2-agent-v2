@@ -65,11 +65,13 @@ Produce a structured JSON brief that captures ONLY what is actually visible in t
 - dialogue_summary: summary of spoken dialogue or narration, if any
 - notable_details: any other distinctive visual details
 - overall_summary: a concise 2-3 sentence summary
+- facts: list of 5-10 short, independently-checkable claims about what is literally visible, ordered from most prominent/persistent to least
 
 Rules:
 - Describe ONLY what you can see in the provided frames.
 - Do NOT invent animals, vehicles, objects, landmarks, locations, or people that are not clearly visible.
 - If something is unclear or partially visible, describe it generically or omit it.
+- Facts should be concrete enough that someone looking at the frames could verify them.
 - Do not include explanations, markdown, or reasoning outside the JSON.
 
 Output ONLY valid JSON matching this structure exactly:
@@ -83,26 +85,15 @@ Output ONLY valid JSON matching this structure exactly:
   "sounds": "...",
   "dialogue_summary": "...",
   "notable_details": "...",
-  "overall_summary": "..."
+  "overall_summary": "...",
+  "facts": ["...", "..."]
 }}
 """
 
 
 def _brief_to_paragraph(brief: VideoBrief) -> str:
-    """Flatten a structured brief into a dense factual paragraph."""
-    parts = [
-        brief.overall_summary,
-        f"Setting: {brief.setting}",
-        f"Subjects: {brief.subjects}",
-        f"Actions: {brief.actions}",
-        f"Objects/details: {brief.objects}",
-        f"Mood: {brief.mood}",
-    ]
-    if brief.dialogue_summary and brief.dialogue_summary.lower() not in {"none", "n/a", ""}:
-        parts.append(f"Audio/dialogue: {brief.dialogue_summary}")
-    if brief.notable_details and brief.notable_details.lower() not in {"none", "n/a", ""}:
-        parts.append(f"Notable details: {brief.notable_details}")
-    return " ".join(parts)
+    """Flatten a structured brief into a concise, structured fact sheet."""
+    return brief.to_text()
 
 
 def _build_verify_prompt(draft: str) -> str:
@@ -110,16 +101,24 @@ def _build_verify_prompt(draft: str) -> str:
 
 {draft}
 
-First, critique the draft by listing each specific concrete claim (objects, animals, vehicles, locations, text, landmarks). For each claim, decide if it is: (a) clearly a real visible object/scene, (b) a graphical overlay, watermark, dissolve, or transition effect, (c) partially visible or unclear, or (d) not supported by the frames.
+Critique each specific concrete claim (objects, animals, vehicles, locations, text, landmarks). Decide if it is: (a) clearly visible, (b) a graphical overlay/watermark/transition, (c) partially visible or unclear, or (d) not supported.
 
-Then rewrite the description as plain text, keeping only claims in category (a). For category (b), describe the graphical element generically only if it is central. Remove or generalize categories (c) and (d). Never describe overlays or transition effects as if they are real-world objects or scenes.
+Rewrite the description keeping only claims in category (a). Generalize category (b) only if central. Remove or generalize categories (c) and (d). Also remove or generalize exact quoted text, brand names, signs, ethnicity, identity labels, religion markers, and specific location claims (cities, countries, landmarks).
 
-Also remove or generalize:
-- Exact quoted text, brand names, signs, slogans
-- Ethnicity, identity labels, religion markers
-- Location claims (city names, countries, landmarks)
+Keep the same structured format with these exact labels, one per line:
+Summary: ...
+Setting: ...
+Subjects: ...
+Actions: ...
+Objects: ...
+Mood: ...
+Audio: ... (only if clearly present)
+Details: ... (only if clearly present)
+Verified facts:
+- ...
+- ...
 
-Output only the final rewritten factual description. Do not output the critique list. Do not mention frames, AI, uncertainty, or analysis."""
+Be concise. Remove unsupported facts. Do not add details not in the draft. Output only the rewritten description. Do not mention frames, AI, uncertainty, or analysis."""
 
 
 def _call_vision_model(client: OpenAI, frame_paths: list[str], prompt: str, max_tokens: int) -> str:
@@ -139,6 +138,8 @@ def _call_vision_model(client: OpenAI, frame_paths: list[str], prompt: str, max_
     )
     raw_text = response.choices[0].message.content
     if raw_text is None:
+        # Surface what we can for debugging; some providers return empty content on refusal.
+        print(f"  WARNING: vision model returned no content. Finish reason: {response.choices[0].finish_reason}")
         raise ValueError("Model returned no content.")
     return raw_text
 

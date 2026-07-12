@@ -22,20 +22,30 @@ class VideoBrief(BaseModel):
     overall_summary: str = Field(
         description="2-3 sentence summary of the video's content."
     )
+    facts: list[str] = Field(
+        default_factory=list,
+        description="5-10 short, independently-checkable claims visible in the frames, "
+                    "ordered from most prominent/persistent to least.",
+    )
 
     def to_text(self) -> str:
         """Flatten the brief into a readable block for text-only caption models."""
-        return (
-            f"Setting: {self.setting}\n"
-            f"Subjects: {self.subjects}\n"
-            f"Actions: {self.actions}\n"
-            f"Objects: {self.objects}\n"
-            f"Mood: {self.mood}\n"
-            f"Sounds: {self.sounds}\n"
-            f"Dialogue summary: {self.dialogue_summary}\n"
-            f"Notable details: {self.notable_details}\n"
-            f"Overall summary: {self.overall_summary}"
-        )
+        lines = [
+            f"Summary: {self.overall_summary}",
+            f"Setting: {self.setting}",
+            f"Subjects: {self.subjects}",
+            f"Actions: {self.actions}",
+            f"Objects: {self.objects}",
+            f"Mood: {self.mood}",
+        ]
+        if self.dialogue_summary and self.dialogue_summary.lower() not in {"none", "n/a", ""}:
+            lines.append(f"Audio: {self.dialogue_summary}")
+        if self.notable_details and self.notable_details.lower() not in {"none", "n/a", ""}:
+            lines.append(f"Details: {self.notable_details}")
+        if self.facts:
+            lines.append("Verified facts:")
+            lines.extend(f"- {f}" for f in self.facts)
+        return "\n".join(lines)
 
 
 class StyledCaptions(BaseModel):
