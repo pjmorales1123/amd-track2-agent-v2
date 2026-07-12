@@ -6,6 +6,19 @@
 - The current pipeline is already excellent. At this level, changes are high-risk / low-reward.
 - Any modification should be A/B tested against the current pipeline before shipping.
 
+## New evidence from peer implementation
+
+I examined `yash-kumarx/amd-hackathon-video-captioning`, another 0.92 submission, which includes an evaluator replica. The replica confirms:
+
+- **Scoring is exactly two axes:** accuracy + style, averaged.
+- **Frames:** 6–8 frames at temporal midpoints `(i + 0.5) / n`, scaled to 768px long edge.
+- **Caption length:** 8–32 words (their `WORD_MIN=8`, `WORD_MAX=32`).
+- **Style prompts:** rubrics + one exemplar per style.
+- **Grounding:** strict facts JSON sent to the styler.
+- **Speed matters:** their config comments note that clips finishing over ~30s may not count.
+
+This strongly validates suggestions #1, #3, and #4.
+
 ## Suggestion-by-suggestion assessment
 
 ### 1. Replace first/last-frame sampling with stable temporal coverage
@@ -19,12 +32,12 @@
 
 ### 2. Give Kimi structured confirmed facts instead of one flattened paragraph
 
-**Verdict: TEST CAREFULLY**
-- **Chance of improvement:** Moderate
-- **Risk:** Medium
-- **Why:** Structured facts could improve accuracy, but Kimi may not handle raw JSON as naturally as prose. The current flattened paragraph works well.
-- **Implementation (if tested):** Keep the verified brief but send it as a clean bullet list rather than a dense paragraph. This preserves readability while separating facts.
-- **Do not:** Send raw nested JSON to the caption model unless few-shot examples prove it follows the structure.
+**Verdict: IMPLEMENT AS CLEAN BULLET LIST**
+- **Chance of improvement:** Moderate-High
+- **Risk:** Low-Medium
+- **Why:** The peer implementation sends strict facts JSON and scores 0.92. The flattened paragraph risks blending events and losing chronology. A clean bullet list preserves structure without forcing Kimi to parse raw JSON.
+- **Implementation:** Convert the verified brief into labeled bullets (Subjects, Actions, Setting, Objects, Mood, Audio) and send that to the caption model.
+- **Do not:** Send dense nested JSON. Bullets are readable and structured.
 
 ### 3. Add carefully chosen few-shot examples for style
 
@@ -69,14 +82,18 @@
   - Randomize A/B order to avoid bias
   - Only ship changes that win across multiple clips
 
-## Recommended execution order
+.## Recommended execution order
 
-1. Build the evaluation harness (#6).
+1. Build the evaluation harness (#6) using the peer's `score.py` logic if possible.
 2. Implement temporal midpoint sampling (#1) and test.
-3. Implement few-shot style examples (#3) and test.
-4. Implement shorter length targets (#4) and test.
-5. Only then consider structured facts (#2) or claim validator (#5).
+3. Add style rubrics + exemplars (#3) and test.
+4. Tighten length targets to 8–32 words (#4) and test.
+5. Switch to bullet-list structured facts (#2) and test.
+6. Consider reducing per-clip timeout to ensure clips finish well under 30s.
+7. Only then consider claim validator (#5).
 
 ## Important caution
 
-Do not ship all six changes at once. The current 0.92 score means the pipeline is already near the accuracy/style ceiling. Iterative A/B testing is the only safe way to improve further.
+Do not ship all changes at once. The current 0.92 score means the pipeline is already near the accuracy/style ceiling. Iterative A/B testing is the only safe way to improve further.
+
+If you cannot A/B test, the safest single change is **temporal midpoint frame sampling (#1)** — it is pure engineering with no prompt-fragility risk.
